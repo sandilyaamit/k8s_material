@@ -1,0 +1,719 @@
+CKAD Training Day-1
+
+============app.py================
+from flask import Flask 
+import os 
+app = Flask(__name__) 
+@app.route('/') 
+
+def hello(): 
+    return ('\nHello from Container World! \n\n')
+
+if __name__ == "__main__": 
+    app.run(host="0.0.0.0", port=8080, debug=True)
+    
+    
+=======================Dockerfile=========================
+FROM ubuntu:22.04
+RUN apt update && apt install python3 -y && apt install python3-flask -y
+COPY app.py /tmp
+EXPOSE 8080
+CMD ["python3", "/tmp/app.py"]
+
+
+sudo -s
+2  apt update
+    3  apt install docker.io
+    4  mkdir demo
+    5  cd demo/
+    6  vi app.py
+    7  vi Dockerfile
+    8  docker images
+   11  docker build -t first:1.0 -f Dockerfile .
+   12  docker images
+   13  docker ps
+   14  docker ps -a
+   17  docker run -d --name mydemo -p 8000:8080 first:1.0
+   18  docker ps
+   19  curl localhost:8000
+   20  cat Dockerfile
+   
+   
+   23  docker ps -a
+   24  docker stats
+   25  docker logs mydemo
+   26  docker exec -it mydemo bash
+   27  ls
+   28  docker cp Dockerfile mydemo:/tmp
+   29  ls
+   30  rm Dockerfile
+   31  docker cp mydemo:/tmp/Dockerfile .
+   32  ls
+   33  docker ps -a
+   34  docker stop mydemo
+   35  docker rm mydemo
+   36  docker ps
+   37  docker images
+   38  vi app.py
+   39  docker build -t first:2.0 -f Dockerfile .
+   40  docker run -d --name mydemo -p 8000:8080 first:1.0
+   41  curl localhost:8000
+   42  docker run -d --name mydemo1 -p 8001:8080 first:2.0
+   43  curl localhost:8001
+   44  docker images
+   45  docker rmi f5d686a386bf
+   46  docker stop mydemo1
+   47  docker rm mydemo1
+   48  docker rmi f5d686a386bf
+   49  docker images
+   50  docker system prune
+   
+   docker images
+   55  docker push first:1.0
+   56  docker tag first:1.0 rajendrait99/first:1.0
+   57  docker images
+   58  docker push rajendrait99/first:1.0
+   
+   
+      73  docker stop mydemo
+   74  docker rm mydemo
+   75  docker images
+   76  docker network ls
+   77  ifcon
+   78  ifconfig
+   79  apt install net-tools
+   80  ifconfig
+   81  docker network ls
+   82  docker network inspect bridge
+   83  docker run -d --name mydemo -p 8000:8080 first:1.0
+   84  docker network inspect bridge
+   85  ifconfig
+   86  docker network create mynet --subnet=192.168.0.0/16
+   87  docker network ls
+   88  docker network inspect mynet
+   89  docker run -d --name mydemo1 -p 8001:8080 --network mynet first:2.0
+   90  docker images
+   91  docker run -d --name mydemo1 -p 8001:8080 --network mynet first:1.0
+   92  docker network inspect mynet
+   93  docker ps
+   94  docker exec -it mydemo bash
+   
+   
+   
+      99  docker ps -a
+  100  docker stop mydemo1 mydemo
+  101  docker system prune
+  102  docker images
+  103  docker rmi fcdeb2bfdc77  83e93e9762dc  83e93e9762dc  83e93e9762dc  97271d29cb79 -f
+  104  docker images
+  
+  Cluster Setup
+  -----------------
+
+  106  curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+  107  chmod +x ./kubectl
+  108  sudo mv ./kubectl /usr/local/bin/kubectl
+  114  curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.25.0/kind-linux-amd64
+  115  chmod +x ./kind
+  116  sudo mv ./kind /usr/local/bin/kind
+  117
+  
+  ========================config===================
+# three node (two workers) cluster config
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+
+  118  kind create cluster --config config
+  
+  
+  
+  
+  
+    122  kubectl get nodes
+  123  docker images
+  124  kubectl get nodes
+  125  kubectl api-resources
+  126  kubectl get ns
+  127  kubectl get all -n kube-system
+  128  kubectl get po -n kube-system
+  129  kubectl get po -n kube-system -o wide
+  130  kubectl run test --image=rajendrait99/first:1.0 --port=8080
+  131  kubectl get po
+  132  kubectl describe po test
+  133  kubectl delete po test
+  134  kubectl run test --image=tiwariamit/first:1.0 --port=8080
+  135  alias k=kubectl
+  136  k get po
+  137  k get po -o wide
+  138  k describe po test
+  139  kubectl logs test
+  140  kubectl exec -it test bash
+  141  kubectl exec -it test -- bash
+  
+  
+  
+  
+    149  k get po
+  150  k delete po test
+  151  k get po
+  152  kubectl run test --image=tiwariamit/first:1.0 --port=8080 --dry-run=client -o yaml > pod.yaml
+  153  vi pod.yaml
+  154  k apply -f pod.yaml
+  155  k get po
+  156  vi pod.yaml
+  157  k apply pod.yaml
+  158  k get po
+  159  k delete po test
+  160  k create deploy mydeploy --image=nginx:latest --port=80 --dry-run=client -o yaml > deploy.yaml
+  161  vi deploy.yaml
+  162  k create -f deploy.yaml
+  163  k get po
+  164  k get rs
+  165  k get deploy
+  166  k get all
+  167  k get po -o wide
+  168  k delete po mydeploy-5f6856475d-p8fh9
+  169  k get po -o wide
+  170  k get all
+  171  vi deploy.yaml
+  
+  
+  
+    174  vi deploy.yaml    # modify the file save it and then apply
+  175  k apply -f deploy.yaml
+  176  k get all
+  177  k scale deploy mydeploy --replicas=10
+  178  k get all
+  179  k edit deploy mydeploy
+  180  k get all
+  181  k scale deploy mydeploy --replicas=2
+  182  k get all
+  183  k autoscale deploy mydeploy --min=2 --max=10 --cpu-percent=80
+  184  k get hpa
+  
+  
+  
+  
+  Create a deployment with image nginx:1.18.0, called nginx, having 2 replicas, 
+defining port 80 as the port that this container exposes (don't create a service for this deployment)
+Scale the deployment to 5 replicas. 
+
+
+k create deploy nginx --image=nginx:1.18.0 --port=80 --dry-run=client -o yaml > deploy.yaml
+
+vi deploy.yaml
+
+# modify replicas to 2.
+
+k scale deploy nginx --replicas=5
+
+
+-------------------------------------------------
+
+Day-2
+-----------------------
+
+  192  alias k=kubectl
+  193  k get no
+  194  kind delete cluster
+  195  kind create cluster --config config
+  196  k create deploy mydeploy --image=nginx:latest --port=80
+  197  k scale deploy mydeploy --replicas=20
+  198  k get all
+  199  k describe po mydeploy-5f6856475d-z9kcn
+  200  k rollout status deploy mydeploy
+  201  k rollout history deploy mydeploy
+  202  k set image deploy mydeploy nginx=nginx:1.8.1
+  203  k rollout history deploy mydeploy
+  204  k rollout status deploy mydeploy
+  205  k get all
+  206  k describe po mydeploy-5548569c85-zlbln
+  207  k rollout status deploy mydeploy
+  208  k set image deploy mydeploy nginx=nginx:1.9.1
+  209  k rollout history deploy mydeploy
+  210  k get all
+  211  k describe po mydeploy-767457f596-zmwzl
+  212  k rollout history deploy mydeploy
+  213  k rollout undo deploy mydeploy  --to-revision=2
+  214  k get all
+  215  k describe pod/mydeploy-5548569c85-t4b6w
+  
+  
+  
+  
+  
+    217  vi ~/.kube/config
+  218  vi ds.yaml
+  219  k get ds
+  220  k get ds -n kube-system
+  221  k get po -n kube-system
+  222  k get po -n kube-system -o wide
+  223  vi ds.yaml
+  
+  
+  
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+
+
+  224  k apply -f ds.yaml
+  225  k get ds
+  226  k get po -o wide
+  227  k delete ds fluentd-elasticsearch-tf67q
+  228  k get po -o wide
+  229  k delete po fluentd-elasticsearch-95mhc
+  230  k get po -o wide
+  
+  
+    240  git clone https://github.com/rskTech/serviceDemo.git
+  241  cd serviceDemo/
+  242  ls
+  243  cd build/
+  244  ls
+  245  vi app.py
+  246  cd ..
+  247  cd deploy/
+  248  vi db-pod.yml
+  249  k get all
+  250  k apply -f db-pod.yml
+  251  k get po
+  252  vi db-svc.yml
+  253  k apply -f db-svc.yml
+  254  k get all
+  255  vi web-pod.yaml
+  256  k apply -f web-pod.yaml
+  257  k get all
+  258  vi web-svc.yml
+  259  k apply -f web-svc.yml
+  260  k get all
+  261  k get no -o wide
+  262  curl 172.18.0.4:31846/init
+  263  curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "1", "user":"John Doe"}' 172.18.0.2:31846/users/add
+  264  curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "2", "user":"ABC"}' 172.18.0.3:31846/users/add
+  265  curl 172.18.0.4:31846/users/1
+  266  curl 172.18.0.4:31846/users/2
+  
+  
+  
+    274  k get all
+  275  k delete po mysql web1
+  276  k delete svc mysql web
+  277  k run nginx --image=nginx --port=80
+  278  k get po
+  279  k expose po nginx --name mysvc --type=NodePort --port=80 --target-port=80
+  280  k get all
+  281  curl 172.18.0.4:30859
+  
+  
+  
+  
+    288  k get no -o wide
+  289  k get no --show-labels
+  290  k label no kind-worker hdd=ssd
+  291  k get no --show-labels
+  292  k get all
+  293  k delete po nginx test
+  294  k delete svc mysvc test
+  295  k get all
+  296  k run test --image=nginx --port=80 --dry-run=client -o yaml > pod.yaml
+  297  vi pod.yaml
+	
+	
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  nodeSelector:
+    hdd: ssd
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+  298  k apply -f pod.yaml
+  299  k get po
+  300  k get po -o wide
+  301  k delete po test
+  303  k get no --show-labels
+  304  k label no kind-worker hdd-
+  305  k get no --show-labels
+  306  k apply -f pod.yaml
+  307  k get po
+  k describe po test
+
+
+
+
+  311  vi pod.yaml
+  
+  
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: hdd
+                operator: In
+                values:
+                  - ssd
+
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+  312  k explain po
+  313  k explain po.spec
+  314  vi pod.yaml
+  315  k explain po.spec.affinity.nodeAffinity
+  316  k explain po.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution
+  317  vi pod.yaml
+  318  k label no kind-worker hdd=ssd
+  319  vi pod.yaml
+  320  k apply -f pod.yaml
+  321  k delete po tets
+  322  k delete po test
+  323  k apply -f pod.yaml
+  324  k get po
+  325  k get po -o wide
+  
+  
+  
+  
+  328  k get all
+  329  k delete po test
+  330  k run nginx --image=nginx
+  331  k get po -o wide
+  332  k get po --show-labels
+  333  k label po nginx key=test
+  334  k get po --show-labels
+  335  vi pod.yaml
+  336  k explain po.spec.affinity.podAffinity
+  337  k explain po.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution
+  338  vi pod.yaml
+  339  k get no --show-labels
+  340  vi pod.yaml
+  341  k explain po.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector
+  342  vi pod.yaml
+  apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: key
+              operator: In
+              values:
+                - test
+          topologyKey: kubernetes.io/hostname
+
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+  343  k get po -o wide
+  344  k apply -f pod.yaml
+  345  k get po -o wide
+  
+  348  k get po --show-labels
+  
+  
+  
+  
+   365  k describe no kind-control-plane
+  366  k taint no kind-worker hdd=ssd:NoSchedule
+  367  k describe no kind-worker
+  368  k get no
+  369  k get po
+  370  vi pod.yaml
+  371  k apply -f pod.yaml
+  372  k get po -o wide
+  373  k delete po test
+  374  k get no
+  375  k cordon kind-worker2
+  376  k get no
+  377  vi pod.yaml
+  378  k apply -f pod.yaml
+  379  k get po
+  380  k describe po test
+  381  k delete po test
+  382  vi pod.yaml
+  383  k apply -f pod.yaml
+  384  k get po -o wide
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  tolerations:
+    - key: hdd
+      operator: Equal
+      value: ssd
+      effect: NoSchedule
+  containers:
+  - image: rajendrait99/second:1.0
+    name: test
+    ports:
+    - containerPort: 8080
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+
+
+
+Question: Create a single Pod of image httpd:2.4.41-alpine in Namespace default . The Pod should be named pod1 and the container should be
+named pod1-container . This Pod should only be scheduled on controlplane nodes. Do not add new labels to any nodes.     3
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: pod1
+  name: pod1
+spec:
+  tolerations:
+    -  key: node-role.kubernetes.io/control-plane
+       effect: NoSchedule
+  nodeSelector:
+    hdd: ssd
+  containers:
+  - image: httpd:2.4.41-alpine
+    name: pod1-container
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+
+Question: Use Namespace project-tiger for the following. Create a Deployment named deploy-important with label id=very-important (the Pods
+should also have this label) and 3 replicas. It should contain two containers, the first named container1 with image nginx:1.17.6-alpine
+and the second one named container2 with image google/pause
+
+
+
+
+  190  k get no
+  191  k uncordon kind-worker2
+  192  k get no
+  193  k describe no kind-worker
+  194  k taint no kind-worker hdd-
+  195  k get all
+  196  k delete po pod1 test
+  198  k get po -n kube-system | grep kube-proxy
+  199  k get po -n kube-system -o wide | grep kube-proxy
+  200  k get po
+  201  vi pod.yaml
+  202  k apply -f pod.yaml
+  203  k get po
+  204  k describe po  test
+  205  k describe no kind-worker2
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    resources:
+      requests:
+        cpu: 0.1m
+        memory: 200M
+      limits:
+        cpu: 0.2m
+        memory: 300M
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+  
+  
+
+ 209  k get po
+  210  k delete po test
+  211  k apply -f pod.yaml
+  212  k get po
+  213  k exec -it test -- env
+  214  vi pod.yaml
+  215  k get po
+  216  k delete po test
+  217  k create cm mycm --from-literal=DBHOST=192.168.0.2 --from-literal=DBPASS=admin
+  218  k get cm
+  219  k describe cm mycm
+  220  vi pod.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    env:
+      - name: DBHOST
+        valueFrom:
+          configMapKeyRef:
+            name: mycm
+            key: DBHOST
+      - name: DBPASS
+        valueFrom:
+          configMapKeyRef:
+            name: mycm
+            key: DBPASS
+    resources:
+      requests:
+        cpu: 0.1m
+        memory: 200M
+      limits:
+        cpu: 0.2m
+        memory: 300M
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+  221  k apply -f pod.yaml
+  222  vi pod.yaml
+  223  k get po
+  224  k exec -it test -- env
+  
+  
+  
+  
+  
+  
+  
+  227  k get po
+  228  k delete po test
+  229  vi myconfig
+  
+username=mysql
+password=abcd
+logfile=app.log
+
+  230  k create cm mycm1 --from-file=myconfig
+  231  k describe cm mycm1
+  232  vi pod.yaml
+  
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    volumeMounts:
+      - name: myvol
+        mountPath: /etc/lala
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  volumes:
+    - name: myvol
+      configMap:
+        name: mycm1
+status: {}
+
+
+  233  k apply -f pod.yaml
+  234  k get po
+  236  k exec -it test -- bash
+
+
+  
+
+
+
+
