@@ -712,8 +712,563 @@ status: {}
   236  k exec -it test -- bash
 
 
+
+454  kind delete cluster
+  455  kind create cluster --config demo/config
+  456  k create secret generic mysecret --from-literal=dbpass=admin
+  457  alias k=kubectl
+  458  k create secret generic mysecret --from-literal=dbpass=admin
+  459  k get secret
+  460  k describe secret mysecret
+  461  vi pod.yaml
+  apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    env:
+      - name: DBPASS
+        valueFrom:
+          secretKeyRef:
+            name: mysecret
+            key: dbpass
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+  462  k apply -f pod.yaml
+  463  k get po
+  464  k exec -it test -- env
+  
+  
+  
+    467  vi myconfig
+  468  k create secret generic mysecret1 --from-file=myconfig
+  469  k describe secret mysecret1
+  470  k delete po test
+  471  vi pod.yaml
+  472  k apply -f pod.yaml
+  473  vi pod.yaml
+  474  k explain po.spec.volumes
+  475  k explain po.spec.volumes.secret
+  476  vi pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    volumeMounts:
+      - name: myvol
+        mountPath: /etc/lala
+    env:
+      - name: DBPASS
+        valueFrom:
+          secretKeyRef:
+            name: mysecret
+            key: dbpass
+  volumes:
+    - name: myvol
+      secret:
+        secretName: mysecret1
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+  477  k apply -f pod.yaml
+  478  k get po
+  479  k exec -it test -- bash
+  
+
+
+ kubectl create secret docker-registry docker-secret --docker-email=example@gmail.com --docker-username=dev --docker-password=pass1234 --docker-server=my-registry.example:5000
+  487  k describe secret docker-secret
+  488  k delete po test
+  vi pod1.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-demo-2
+spec:
+  containers:
+  - name: demo-container
+    image: nginx
+    envFrom:
+    - secretRef:
+       name: docker-secret
+  493  k apply -f pod1.yaml
+  494  k get po
+  495  k exec -it secret-demo-2 -- bash
+  
+  
+
+
+
+  499  docker ps
+  500  docker exec -it kind-control-plane bash
+  501  docker cp kind-control-plane:/etc/kubernetes/pki/apiserver.crt .
+  502  docker cp kind-control-plane:/etc/kubernetes/pki/apiserver.key .
+  503  ls
+  504  k create secret tls abc --cert=apiserver.crt --key=apiserver.key
+  505  vi pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    volumeMounts:
+      - name: myvol
+        mountPath: /etc/lala
+  volumes:
+    - name: myvol
+      secret:
+        secretName: abc
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+  506  k get po
+  507  k delete po test secret-demo-2
+  508  k apply -f pod.yaml
+  509  k get po
+  510  k exec -it test -- bash
+  
+  
+  
+  
+    515  k get all
+  516  k create job myjob --image=ubuntu:20.04 --dry-run=client -o yaml -- /bin/sh -c "sleep 10" > job.yaml
+  517  vi job.yaml
+  518  k get job
+  519  k get po
+  520  k get all
+  521  watch kubectl get all
+  522  k apply -f job.yaml
+  523  watch kubectl get all
+  524  vi job.yaml
+  
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: myjob
+spec:
+  completions: 3
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - sleep 10
+        image: ubuntu:20.04
+        name: myjob
+        resources: {}
+      restartPolicy: Never
+status: {}
+
+
+  525  k delete job myjob
+  526  k apply -f job.yaml
+  527  watch kubectl get all
+  
+  
   
 
 
 
 
+  531  k delete job myjob
+  533  vi job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: myjob
+spec:
+  completions: 10
+  parallelism: 3
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - sleep 10
+        image: ubuntu:20.04
+        name: myjob
+        resources: {}
+      restartPolicy: Never
+status: {}
+
+  534  k apply -f job.yaml
+  535  watch kubectl get all
+  536  k explain job.spec
+
+
+crontab.guru
+
+https://crontab.guru/#0_19_*_*_0
+
+
+
+ 539  k create cj mycj --image=ubuntu:20.04 --schedule="*/1 * * * *" --dry-run=client -o yaml -- /bin/sh -c "sleep 10" > cronjob.yaml
+  540  vi cronjob.yaml
+  541  k delete job myjob
+  542  k apply -f cronjob.yaml
+  543  watch kubectl get all
+
+
+
+Question:
+Do the following in a new Namespace secret . Create a Pod named secret-pod of image busybox:1.31.1 which should keep running for
+some time.
+There is an existing Secret located at /opt/course/19/secret1.yaml , create it in the Namespace secret and mount it readonly into the Pod
+at /tmp/secret1 .
+
+k create ns secret.
+k create secret generic test --from-file=/opt/course/19/secret1.yaml -n secret
+k run secret-pod --image=busybox:1.31.1 -n secret --dry-run=client -o yaml  > pod.yaml
+
+volumeMounts:
+  - name: myvol
+    volumeMounts: /tmp/secret1
+volumes:
+  - name: myvol
+    secret:
+      secretName: test
+
+
+Question:
+Create a new Secret in Namespace secret called secret2 which should contain user=user1 and pass=1234 . These entries should be
+available inside the Pod's container as environment variables APP_USER and APP_PASS.
+Confirm everything is working.
+
+
+k create secret generic secret2 --from-literal=user=user1 --from-literal=pass=1234 -n secret
+
+
+k run test --image=nginx --port=80 --dry-run=client -o yaml > pod.yaml
+
+env:
+  - name: APP_USER
+    valueFrom:
+       secretKeyRef:
+         name: secret2
+         key: user
+  - name: APP_PASS
+    valueFrom:
+       secretKeyRef:
+        name: secret2
+        key: pass
+		
+		
+		
+		
+Question:
+
+Create a pod that will be deployed to a Node that has the label 'accelerator=nvidia-tesla-p100'
+
+k get no --show-labels
+k label no kind-worker accelerator=nvidia-tesla-p100
+
+Taint a node with key tier and value frontend with the effect NoSchedule. Then, create a pod that tolerates this taint.
+
+k taint no kind-worker tier=frontend:NoSchedule
+
+tolerations:
+  key: tier
+  operator: Equal
+  value: frontned
+  effect: NoSchedule
+
+Create a pod that will be placed on node controlplane. Use nodeSelector and tolerations.
+
+tolerations:
+  key: tier
+  operator: Equal
+  value: frontned
+  effect: NoSchedule
+  
+nodeSelector:
+  accelerator: nvidia-tesla-p100
+  
+  
+  
+  
+  548  vi pv.yaml
+  
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mypv
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 2G
+  storageClassName: normal
+  hostPath:
+    path: /opt
+
+  549  k apply -f pv.yaml
+  550  k get pv
+  551  vi pvc.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mypvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: normal
+  resources:
+    requests:
+      storage: 2G
+	  
+	  
+  552  k get pvc
+  553  k apply -f pvc.yaml
+  554  k get pvc
+  555  k get pv
+  556  vi pod.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    volumeMounts:
+      - name: myvol
+        mountPath: /etc/lala
+  volumes:
+    - name: myvol
+      persistentVolumeClaim:
+        claimName: mypvc
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+  557  k get all
+  558  k apply -f pod.yaml
+  559  k get po
+  560  k exec -it test -- bash
+  561  k explain pv.spec
+  562  k explain pv.spec.awsElasticBlockStore
+  
+  
+Question:
+
+Create a job named pi with image perl:5.34 that runs the command with arguments "perl -Mbignum=bpi -wle 'print bpi(2000)'"
+Wait till it's done, get the output. 
+
+
+k create job pi --image=perl:5.34  -- /bin/sh -c "perl -Mbignum=bpi -wle 'print bpi(2000)'"
+
+Question:
+Create a job with the image busybox that executes the command 'echo hello;sleep 30;echo world'
+See the status of the job, describe it and see the logs
+
+
+k create job myjob --image=busybox -- /bin/sh -c  'echo hello;sleep 30;echo world'
+
+
+
+
+
+  568  git clone https://github.com/rskTech/k8s_material.git
+  569  cd k8s_material/statefulset/
+  584  k apply -f sc.yaml
+  585  k get sc
+  586  k get pvc
+  587  k describe pvc www-web-0
+  588  k delete sts web
+  589  k get pvc
+  590  k delete pvc www-web-0
+  591  k apply -f sfs.yaml
+  592  k get sts
+  593  k get po
+  594  k get pvc
+  595  k describe pvc www-web-0
+  596  k get po
+  597  k describe po  web-0
+  598  vi pv.yaml
+  599  k apply -f pv.yaml
+  600  k get pv
+  601  k get po
+  602  k get pvc
+  603  k get pv
+  604  vi pv1.yaml
+  605  k apply -f pv1.yaml
+  606  k get pvc
+  607  k get po
+  608  k get pvc
+  609  k apply -f pv2.yaml
+  610  k get pvc
+  611  k get po
+  612  k delete po web-0
+  613  k get po
+  614  k get pvc
+  615  k get pv
+  616  vi sc.yaml
+  623  k scale sts web --replicas=5
+  624  k get po
+  625  k get pvc
+
+
+
+
+  637  k delete sts web
+  638  k get pvc
+  639  k get pv
+  640  k delete pv mypv mypv1 mypv2
+  641  k delete pvc www-web-0 www-web-1 www-web-2
+  642  k get all
+  643  k delete svc headless
+  644  k get all
+  645  k get ns
+  646  k create ns test
+  647  vi rq.yaml
+  
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: myrq
+  namespace: test
+spec:
+  hard:
+    cpu: 0.3
+    memory: 500M
+    pods: 10
+	
+
+  648  k apply -f rq.yaml
+  649  k get quotas
+  650  k get quota
+  651  k get quota -n test
+  655  vi pod.yaml
+  656  k apply -f pod.yaml
+  657  k get po -n test
+  658  k get quota -n test
+  659  vi pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test11
+  namespace: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    resources:
+      requests:
+        cpu: 0.1
+        memory: 200M
+      limits:
+        cpu: 0.1
+        memory: 200M
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+  660  k apply -f pod.yaml
+  661  k get po -n test
+  662  k get quota -n test
+  663  vi pod.yaml
+  664  k apply -f pod.yaml
+  
+  
+  
+  
+  
+  669  vi pc.yaml
+  670  k api-resources | grep priority
+  671  vi pc.yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high
+value: 1000
+
+  672  vi pod.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: test
+  name: test11
+spec:
+  priorityClassName: high
+  containers:
+  - image: nginx
+    name: test
+    ports:
+    - containerPort: 80
+    resources:
+      requests:
+        cpu: 0.1
+        memory: 200M
+      limits:
+        cpu: 0.1
+        memory: 200M
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+  674  k apply -f pc.yaml
+  675  k get po
+  676  vi pod.yaml
+  677  k apply -f pod.yaml
+  678  k get po
+  679  vi pc.yaml
+  680  vi pod.yaml
+  681  vi pc.yaml
+  682  k get po
+  683  k run ngin --image=nginx
+  684  k edit po nginx
+  685  k get po
+  687  k edit po ngin
